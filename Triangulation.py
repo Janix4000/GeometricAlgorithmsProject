@@ -1,13 +1,15 @@
 from TriangleSet import TriangleSet
 from tools import own_det_3 as det
+from generators import gen_a as generate_random_points
 from typing import List, Tuple
 from functools import reduce
 import numpy as np
+from plots import Plot, Scene, LinesCollection as LC
 
 
 class Triangulation:
     def __init__(self, points: List[Tuple[float, float]]):
-        self.points: List[Tuple[float, float]] = points
+        self.points: List[Tuple[float, float]] = list(points)
         self.triangle_set = TriangleSet()
         self.idx = 0
 
@@ -24,12 +26,32 @@ class Triangulation:
         self.triangle_set.add_triangle(n, n + 1, n + 2)
 
         for point in points:
+            if self.idx == n:
+                break
             self.add_point_to_triangulation(point)
+        return self.get_result_triangulation()
 
+    def triangulate_test(self):
+        points = self.points
+        n = len(points)
+        if n < 3:
+            return None
+        if n == 3:
+            return [(0, 1, 2)]
+
+        p0, p1, p2 = self.make_starting_points()
+        points.extend([p0, p1, p2])
+        self.triangle_set.add_triangle(n, n + 1, n + 2)
+
+        for point in points:
+            if self.idx == n:
+                break
+            self.add_point_to_triangulation(point)
+            # if not self.is_proper():
+            #     print("There's a bug...")
+            yield self.get_test_lines()
         for _ in range(3):
             points.pop()
-
-        return self.get_result_triangulation()
 
     def make_starting_points(self):
         ps = self.points
@@ -40,8 +62,8 @@ class Triangulation:
         width = right - left
         height = top - bot
         p0 = (left + width / 2, top + width / 2)
-        p1 = (right + height + width / 10, bot + height / 10)
-        p2 = (left - height - width / 10, bot + height / 10)
+        p1 = (right + 2 * height, bot - height * 0.5)
+        p2 = (left - 2 * height, bot - height * 0.5)
 
         return p0, p1, p2
 
@@ -62,7 +84,7 @@ class Triangulation:
         d0 = det(p0, p1, point)
         d1 = det(p1, p2, point)
         d2 = det(p2, p0, point)
-        return d0 < 0 and d1 < 0 and d2 < 0
+        return d0 <= 0 and d1 <= 0 and d2 <= 0
 
     def find_next_in_triangle(self, point, i0, i1, i2):
         if self.can_be_next_triangle(i1, i0, point):
@@ -76,7 +98,8 @@ class Triangulation:
     def can_be_next_triangle(self, i0, i1, point):
         p0 = self.points[i0]
         p1 = self.points[i1]
-        return det(p0, p1, point) > 0 and (i0, i1) in self.triangle_set
+        d = det(p0, p1, point)
+        return d < 0 and (i0, i1) in self.triangle_set
 
     def add_point_to_triangulation(self, point):
         i0, i1, i2 = self.find_in_triangle(point)
@@ -104,12 +127,17 @@ class Triangulation:
         if d in self.triangle_set and dr in self.triangle_set:
             tr0 = (d[0], d[1], self.triangle_set[d])
             tr1 = (dr[0], dr[1], self.triangle_set[dr])
-            point = self.points[tr1[2]]
-            triangle = tr0
-            if self.is_point_in_circumscribed_circle_of_triangle(point, triangle):
+            if self.should_be_swapped(tr0, tr1):
                 self.swap_diagonals_in_triangles(tr0, tr1)
                 return [(tr1[1], tr1[2]), (tr1[2], tr1[0])]
         return []
+
+    def should_be_swapped(self, tr0, tr1):
+        if self.is_convex(tr0, tr1):
+            point = self.points[tr1[2]]
+            triangle = tr0
+            return self.is_point_in_circumscribed_circle_of_triangle(point, triangle)
+        return False
 
     def is_point_in_circumscribed_circle_of_triangle(self, point, triangle):
         tr = [self.points[triangle[i]] for i in range(3)]
@@ -121,7 +149,8 @@ class Triangulation:
         p0 = triangle[0]
         p1 = triangle[1]
         p2 = triangle[2]
-        a = np.array([[p2[0] - p0[0], p2[1] - p0[1]], [p2[0] - p1[0], p2[1] - p1[1]]])
+        a = np.array([[p2[0] - p0[0], p2[1] - p0[1]],
+                      [p2[0] - p1[0], p2[1] - p1[1]]])
         y = np.array([(p2[0] ** 2 + p2[1] ** 2 - p0[0] ** 2 - p0[1] ** 2),
                       (p2[0] ** 2 + p2[1] ** 2 - p1[0] ** 2 - p1[1] ** 2)])
         if np.linalg.det(a) == 0:
@@ -136,15 +165,59 @@ class Triangulation:
         self.triangle_set.remove_triangle(*tr0)
         self.triangle_set.remove_triangle(*tr1)
         self.triangle_set.add_triangle(tr0[2], tr0[0], tr1[2])
-        self.triangle_set.add_triangle(tr1[2], tr1[1], tr0[2])
+        self.triangle_set.add_triangle(tr1[2], tr1[0], tr0[2])
 
     def get_result_triangulation(self):
         result = self.triangle_set.get_triangles()
-        n = len(self.points)
+        n = self.idx + 1
         return list(filter(lambda p: p[2] < n, result))
 
+    def get_test_lines(self):
+        ps = self.points
+        triangles = [[[ps[t[0]], ps[t[1]]], [ps[t[1]], ps[t[2]]], [
+            ps[t[2]], ps[t[0]]]] for t in self.triangle_set.get_triangles()]
+        ls = [item for sublist in triangles for item in sublist]
+        return ls
+
+    def is_convex(self, tr0, tr1):
+        p0 = self.points[tr0[0]]
+        p1 = self.points[tr0[1]]
+        p2 = self.points[tr0[2]]
+        p3 = self.points[tr1[2]]
+        d0 = det(p2, p1, p3)
+        d1 = det(p3, p0, p2)
+        return d0 > 0 and d1 > 0
+
+    def is_proper(self):
+        triangles = self.get_result_triangulation()
+        for i0, i1, i2 in triangles:
+            triangle = (i0, i1, i2)
+            for i in range(self.idx):
+                if i in [i0, i1, i2]:
+                    continue
+                point = self.points[i]
+                if self.is_point_in_circumscribed_circle_of_triangle(point, triangle):
+                    return False
+        return True
 
 
+if __name__ == '__main__':
+    # ps = [
+    #     (0, 0), (1, 1), (2, 0), (4, 2),
+    #     (2, 4), (0, 4), (1.5, 6)
+    # ]
+    ps = generate_random_points(30, -1000, 1000)
+    tr = Triangulation(ps)
+    scenes = []
+    for i, lines in enumerate(tr.triangulate_test()):
+        print("Made triangulation for {} step".format(i))
+        scenes.append(Scene(
+            lines=[LC(
+                lines=lines
+            )]
+        ))
+    # tr.triangulate()
+    # triangles = tr.get_result_triangulation()
 
-
-
+    plot = Plot(scenes=scenes)
+    plot.draw()

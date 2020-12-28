@@ -25,9 +25,9 @@ class TriangleSet:
 
     def get_triangles(self):
         triangles = set()
-        for (i0, i1), i2 in self.ts:
+        for (i0, i1), i2 in self.ts.items():
             tr = [i0, i1, i2]
-            triangles.add(sorted(tr))
+            triangles.add(tuple(sorted(tr)))
         return list(triangles)
 
 
