@@ -4,6 +4,7 @@ from generators import gen_a as generate_random_points
 from visualiser import Visualiser
 from typing import List, Tuple
 from functools import reduce
+from math import sqrt
 import numpy as np
 from plots import Plot, Scene, LinesCollection as LC
 
@@ -98,19 +99,30 @@ class Triangulation:
         return d0 <= 0 and d1 <= 0 and d2 <= 0
 
     def find_next_in_triangle(self, point, i0, i1, i2):
-        if self.can_be_next_triangle(i1, i0, point):
+        if self.can_be_next_triangle(i0, i1, point):
             return i1, i0, self.triangle_set[(i1, i0)]
-        if self.can_be_next_triangle(i2, i1, point):
+        if self.can_be_next_triangle(i1, i2, point):
             return i2, i1, self.triangle_set[(i2, i1)]
-        if self.can_be_next_triangle(i0, i2, point):
+        if self.can_be_next_triangle(i2, i0, point):
             return i0, i2, self.triangle_set[(i0, i2)]
         return -1, -1, -1
 
     def can_be_next_triangle(self, i0, i1, point):
+        if not (i0, i1) in self.triangle_set:
+            return False
+        i2 = self.triangle_set[(i0, i1)]
         p0 = self.points[i0]
         p1 = self.points[i1]
-        d = det(p0, p1, point)
-        return d < 0 and (i0, i1) in self.triangle_set
+        p2 = self.points[i2]
+        n201 = (p0[0] - p2[0] + p0[0] - p1[0], p0[1] - p2[1] + p0[1] - p1[1])
+        # n201 = (n201[0] / sqrt(n201[0]**2 + n201[1]**2),
+        # n201[1] / sqrt(n201[0]**2 + n201[1]**2))
+        n012 = (p1[0] - p2[0] + p1[0] - p0[0], p1[1] - p2[1] + p1[1] - p0[1])
+        # n012 = (n012[0] / sqrt(n012[0]**2 + n012[1]**2),
+        # n012[1] / sqrt(n012[0]**2 + n012[1]**2))
+        d201 = det(p0, (p0[0] + n201[0], p0[1] + n201[1]), point)
+        d012 = det(p1, (p1[0] + n012[0], p1[1] + n012[1]), point)
+        return d201 < 0 and d012 > 0
 
     def add_point_to_triangulation(self, point):
         i0, i1, i2 = self.find_in_triangle(point)
@@ -155,7 +167,7 @@ class Triangulation:
         center, r_sq = self.circumscribed_circle_of_triangle(tr)
         return (point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2 < r_sq
 
-    @staticmethod
+    @ staticmethod
     def circumscribed_circle_of_triangle(triangle):
         p0 = triangle[0]
         p1 = triangle[1]
@@ -217,7 +229,7 @@ if __name__ == '__main__':
     #     (0, 0), (1, 1), (2, 0), (4, 2),
     #     (2, 4), (0, 4), (1.5, 6)
     # ]
-    ps = generate_random_points(10, -1000, 1000)
+    ps = generate_random_points(20, -1000, 1000)
     tr = Triangulation(ps)
     # scenes = []
     # for i, lines in enumerate(tr.triangulate_test()):
@@ -227,7 +239,10 @@ if __name__ == '__main__':
     #             lines=lines
     #         )]
     #     ))
-    triangles = tr.triangulate()
+    try:
+        triangles = tr.triangulate()
+    except:
+        print("kek")
 
     plot = tr.visualiser.get_plot()
     plot.draw()
