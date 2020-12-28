@@ -74,9 +74,14 @@ class Triangulation:
         return p0, p1, p2
 
     def find_in_triangle(self, point):
+        self.visualiser.reset_path()
         i0, i1, i2 = self.triangle_set.get_first()
+        self.visualiser.add_to_path((i0, i1, i2))
+        self.visualiser.draw_with_path()
         while not self.is_point_in_triangle(point, i0, i1, i2):
             i0, i1, i2 = self.find_next_in_triangle(point, i0, i1, i2)
+            self.visualiser.add_to_path((i0, i1, i2))
+            self.visualiser.draw_with_path()
         return i0, i1, i2
 
     def is_point_in_triangle(self, point, i0, i1, i2):

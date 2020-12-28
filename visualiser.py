@@ -6,6 +6,20 @@ class Visualiser:
         self.triangulator = None
         self.n = -1
         self.scenes = []
+        self.path = []
+
+    def reset_path(self):
+        self.path = []
+
+    def add_to_path(self, triangle):
+        self.path.append(triangle)
+
+    def draw_with_path(self):
+        scene = self.draw_clear_triangulation()
+        path_lines = self.get_lines(self.path)
+        scene.lines.append(
+            LC(path_lines, color="red")
+        )
 
     def set_triangulator(self, triangulator):
         self.triangulator = triangulator
