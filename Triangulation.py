@@ -1,6 +1,7 @@
 from TriangleSet import TriangleSet
 from tools import own_det_3 as det
 from generators import gen_a as generate_random_points
+from visualiser import Visualiser
 from typing import List, Tuple
 from functools import reduce
 import numpy as np
@@ -12,6 +13,8 @@ class Triangulation:
         self.points: List[Tuple[float, float]] = list(points)
         self.triangle_set = TriangleSet()
         self.idx = 0
+        self.visualiser = Visualiser()
+        self.visualiser.set_triangulator(self)
 
     def triangulate(self):
         points = self.points
@@ -25,10 +28,13 @@ class Triangulation:
         points.extend([p0, p1, p2])
         self.triangle_set.add_triangle(n, n + 1, n + 2)
 
+        self.visualiser.draw_clear_triangulation()
+
         for point in points:
             if self.idx == n:
                 break
             self.add_point_to_triangulation(point)
+            self.visualiser.draw_clear_triangulation()
         return self.get_result_triangulation()
 
     def triangulate_test(self):
@@ -206,18 +212,17 @@ if __name__ == '__main__':
     #     (0, 0), (1, 1), (2, 0), (4, 2),
     #     (2, 4), (0, 4), (1.5, 6)
     # ]
-    ps = generate_random_points(30, -1000, 1000)
+    ps = generate_random_points(10, -1000, 1000)
     tr = Triangulation(ps)
-    scenes = []
-    for i, lines in enumerate(tr.triangulate_test()):
-        print("Made triangulation for {} step".format(i))
-        scenes.append(Scene(
-            lines=[LC(
-                lines=lines
-            )]
-        ))
-    # tr.triangulate()
-    # triangles = tr.get_result_triangulation()
+    # scenes = []
+    # for i, lines in enumerate(tr.triangulate_test()):
+    #     print("Made triangulation for {} step".format(i))
+    #     scenes.append(Scene(
+    #         lines=[LC(
+    #             lines=lines
+    #         )]
+    #     ))
+    triangles = tr.triangulate()
 
-    plot = Plot(scenes=scenes)
+    plot = tr.visualiser.get_plot()
     plot.draw()
