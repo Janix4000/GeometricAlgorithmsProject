@@ -28,6 +28,7 @@ class Triangulation:
         p0, p1, p2 = self.make_starting_points()
         points.extend([p0, p1, p2])
         self.triangle_set.add_triangle(n, n + 1, n + 2)
+        self.visualiser.set_boundaries(p2[0], p1[0], p0[1], p1[1])
 
         self.visualiser.draw_clear_triangulation()
 
@@ -36,6 +37,7 @@ class Triangulation:
                 break
             self.add_point_to_triangulation(point)
             self.visualiser.draw_clear_triangulation()
+        self.visualiser.draw_result_triangulation()
         return self.get_result_triangulation()
 
     def triangulate_test(self):
@@ -155,7 +157,12 @@ class Triangulation:
         if d in self.triangle_set and dr in self.triangle_set:
             tr0 = (d[0], d[1], self.triangle_set[d])
             tr1 = (dr[0], dr[1], self.triangle_set[dr])
-            self.visualiser.draw_with_triangles(tr0, tr1)
+
+            tr = [self.points[tr0[i]] for i in range(3)]
+            center, r_sq = self.circumscribed_circle_of_triangle(tr)
+            self.visualiser.draw_with_triangles_and_circle(
+                tr0, tr1, center, r_sq)
+
             if self.should_be_swapped(tr0, tr1):
                 self.swap_diagonals_in_triangles(tr0, tr1)
                 return [(tr1[1], tr1[2]), (tr1[2], tr1[0])]

@@ -11,9 +11,18 @@ def gen_a(n=100, l=-100, r=100):
 
 def gen_b(n=100, p=np.array([0, 0]), r=10):
     angles = np.random.uniform(0, 2 * np.pi, n)
+    return gen_circle(angles)
+
+
+def gen_circle(angles, p, r):
     x = np.cos(angles) * r + p[0]
     y = np.sin(angles) * r + p[1]
     return np.vstack((x, y)).T
+
+
+def gen_uniform_circle(n=100, p=np.array([0, 0]), r=10):
+    angles = np.linspace(0, 2 * np.pi, n)
+    return gen_circle(angles, p, r)
 
 
 def gen_c(n=100, lr=np.array([-10, 10]), tb=np.array([-10, 10])):

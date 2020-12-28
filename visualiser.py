@@ -1,4 +1,6 @@
 from plots import Plot, Scene, LinesCollection as LC, PointsCollection as PC
+from math import sqrt
+from generators import gen_uniform_circle as generate_circle
 
 
 class Visualiser:
@@ -24,6 +26,12 @@ class Visualiser:
     def set_triangulator(self, triangulator):
         self.triangulator = triangulator
         self.n = len(triangulator.points)
+
+    def set_boundaries(self, left, right, top, bot):
+        self.left = left
+        self.right = right
+        self.top = top
+        self.bot = bot
 
     def get_lines(self, triangles):
         ps = self.triangulator.points
@@ -71,6 +79,27 @@ class Visualiser:
         scene.lines.append(
             LC(triangle_lines, color="cyan")
         )
+        return scene
+
+    def draw_with_triangles_and_circle(self, tr0, tr1, center, r_sq):
+        scene = self.draw_with_triangles(tr0, tr1)
+        circle_lines = self.get_circle_lines(center, r_sq)
+        scene.lines.append(
+            LC(circle_lines, color='orange')
+        )
+        return scene
+
+    def get_circle_lines(self, center, r_sq):
+        r = sqrt(r_sq)
+        points = generate_circle(100, center, r)
+        lines = [(points[i], points[(i + 1) % len(points)])
+                 for i in range(len(points))]
+        return self.validate_lines(lines)
+
+    def validate_lines(self, lines):
+        def check(
+            p): return self.left < p[0] < self.right and self.bot < p[1] < self.top
+        return list(filter(lambda l: check(l[0]) and check(l[1]), lines))
 
     def get_main_triangles(self):
         triangles = self.triangulator.triangle_set.get_triangles()
@@ -82,3 +111,8 @@ class Visualiser:
 
     def get_plot(self):
         return Plot(scenes=self.scenes)
+
+    def draw_result_triangulation(self):
+        scene = self.draw_clear_triangulation()
+        scene.points.pop()
+        scene.lines.pop()
