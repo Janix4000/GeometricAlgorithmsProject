@@ -65,6 +65,13 @@ class Visualiser:
         )
         return scene
 
+    def draw_with_triangles(self, tr0, tr1):
+        scene = self.draw_clear_triangulation()
+        triangle_lines = self.get_lines([tr0, tr1])
+        scene.lines.append(
+            LC(triangle_lines, color="cyan")
+        )
+
     def get_main_triangles(self):
         triangles = self.triangulator.triangle_set.get_triangles()
         return list(filter(lambda p: p[2] < self.n, triangles))

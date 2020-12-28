@@ -127,20 +127,25 @@ class Triangulation:
     def add_point_to_triangulation(self, point):
         i0, i1, i2 = self.find_in_triangle(point)
         self.apply_point_in_triangle(point, (i0, i1, i2))
-        self.idx += 1
 
     def apply_point_in_triangle(self, point, triangle):
         t = triangle
         self.triangle_set.remove_triangle(*t)
         for i in range(3):
             self.triangle_set.add_triangle(t[i], t[(i + 1) % 3], self.idx)
+        self.idx += 1
+        self.visualiser.draw_clear_triangulation()
         self.swap_bad_neighbours(t)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
         stack = [(t[i], t[(i + 1) % 3]) for i in range(3)]
+        swapped = set()
         while stack:
             diagonal = stack.pop()
+            if diagonal in swapped:
+                continue
+            swapped.add(diagonal)
             new_diagonals = self.swap_diagonal_if_necessary(diagonal)
             stack.extend(new_diagonals)
 
@@ -150,6 +155,7 @@ class Triangulation:
         if d in self.triangle_set and dr in self.triangle_set:
             tr0 = (d[0], d[1], self.triangle_set[d])
             tr1 = (dr[0], dr[1], self.triangle_set[dr])
+            self.visualiser.draw_with_triangles(tr0, tr1)
             if self.should_be_swapped(tr0, tr1):
                 self.swap_diagonals_in_triangles(tr0, tr1)
                 return [(tr1[1], tr1[2]), (tr1[2], tr1[0])]
@@ -189,6 +195,8 @@ class Triangulation:
         self.triangle_set.remove_triangle(*tr1)
         self.triangle_set.add_triangle(tr0[2], tr0[0], tr1[2])
         self.triangle_set.add_triangle(tr1[2], tr1[0], tr0[2])
+        self.visualiser.draw_with_triangles(
+            (tr0[2], tr0[0], tr1[2]), (tr1[2], tr1[0], tr0[2]))
 
     def get_result_triangulation(self):
         result = self.triangle_set.get_triangles()
@@ -243,6 +251,6 @@ if __name__ == '__main__':
         triangles = tr.triangulate()
     except:
         print("kek")
-
+    print(tr.is_proper())
     plot = tr.visualiser.get_plot()
     plot.draw()
