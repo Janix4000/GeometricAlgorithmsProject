@@ -15,7 +15,7 @@ class Visualiser:
         self.path.append(triangle)
 
     def draw_with_path(self):
-        scene = self.draw_clear_triangulation()
+        scene = self.draw_with_looking_for_point()
         path_lines = self.get_lines(self.path)
         scene.lines.append(
             LC(path_lines, color="red")
@@ -55,6 +55,14 @@ class Visualiser:
             ]
         )
         self.scenes.append(scene)
+        return scene
+
+    def draw_with_looking_for_point(self):
+        scene = self.draw_clear_triangulation()
+        points = [self.triangulator.points[self.triangulator.idx]]
+        scene.points.append(
+            PC(points, color="red", s=20)
+        )
         return scene
 
     def get_main_triangles(self):
