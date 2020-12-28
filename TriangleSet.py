@@ -14,3 +14,23 @@ class TriangleSet:
 
     def __contains__(self, item):
         return item in self.ts
+
+    def get_first(self):
+        i0, i1 = next(iter(self.ts))
+        i2 = self.ts[(i0, i1)]
+        return i0, i1, i2
+
+    def __getitem__(self, item):
+        return self.ts[item]
+
+    def get_triangles(self):
+        triangles = set()
+        for (i0, i1), i2 in self.ts:
+            tr = [i0, i1, i2]
+            triangles.add(sorted(tr))
+        return list(triangles)
+
+
+if __name__ == '__main__':
+    kek = {(0, 0): 1, (1, 1): 1, (2, 1): 3}
+    print(next(iter(kek)))
