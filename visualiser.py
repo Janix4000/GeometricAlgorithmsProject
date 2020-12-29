@@ -94,12 +94,7 @@ class Visualiser:
         points = generate_circle(100, center, r)
         lines = [(points[i], points[(i + 1) % len(points)])
                  for i in range(len(points))]
-        return self.validate_lines(lines)
-
-    def validate_lines(self, lines):
-        def check(
-            p): return self.left < p[0] < self.right and self.bot < p[1] < self.top
-        return list(filter(lambda l: check(l[0]) and check(l[1]), lines))
+        return lines
 
     def get_main_triangles(self):
         triangles = self.triangulator.triangle_set.get_triangles()
