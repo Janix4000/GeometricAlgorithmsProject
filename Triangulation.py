@@ -1,7 +1,7 @@
 from TriangleSet import TriangleSet
 from tools import own_det_3 as det
 from generators import gen_a as generate_random_points
-from visualiser import Visualiser
+from visualiser import Visualiser, FakeVisualiser
 from typing import List, Tuple
 from functools import reduce
 from math import sqrt
@@ -10,11 +10,11 @@ from plots import Plot, Scene, LinesCollection as LC
 
 
 class Triangulation:
-    def __init__(self, points: List[Tuple[float, float]]):
+    def __init__(self, points: List[Tuple[float, float]], visualiser=FakeVisualiser()):
         self.points: List[Tuple[float, float]] = list(points)
         self.triangle_set = TriangleSet()
         self.idx = 0
-        self.visualiser = Visualiser()
+        self.visualiser = visualiser
         self.visualiser.set_triangulator(self)
 
     def triangulate(self):
@@ -38,28 +38,6 @@ class Triangulation:
             self.visualiser.draw_clear_triangulation()
         self.visualiser.draw_result_triangulation()
         return self.get_result_triangulation()
-
-    def triangulate_test(self):
-        points = self.points
-        n = len(points)
-        if n < 3:
-            return None
-        if n == 3:
-            return [(0, 1, 2)]
-
-        p0, p1, p2 = self.make_starting_points()
-        points.extend([p0, p1, p2])
-        self.triangle_set.add_triangle(n, n + 1, n + 2)
-
-        for point in points:
-            if self.idx == n:
-                break
-            self.add_point_to_triangulation(point)
-            # if not self.is_proper():
-            #     print("There's a bug...")
-            yield self.get_test_lines()
-        for _ in range(3):
-            points.pop()
 
     def make_starting_points(self):
         ps = self.points
@@ -140,15 +118,16 @@ class Triangulation:
     def add_point_to_triangulation(self, point):
         i0, i1, i2 = self.find_in_triangle(point)
         self.apply_point_in_triangle(point, (i0, i1, i2))
+        self.idx += 1
 
     def apply_point_in_triangle(self, point, triangle):
         t = triangle
         self.triangle_set.remove_triangle(*t)
         for i in range(3):
             self.triangle_set.add_triangle(t[i], t[(i + 1) % 3], self.idx)
-        self.idx += 1
-        self.visualiser.draw_clear_triangulation()
+        self.visualiser.draw_with_looking_for_point()
         self.swap_bad_neighbours(t)
+        # self.remove_overlaping_triangles(t)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -169,15 +148,19 @@ class Triangulation:
             tr0 = (d[0], d[1], self.triangle_set[d])
             tr1 = (dr[0], dr[1], self.triangle_set[dr])
 
-            tr = [self.points[tr0[i]] for i in range(3)]
-            center, r_sq = self.circumscribed_circle_of_triangle(tr)
-            self.visualiser.draw_with_triangles_and_circle(
-                tr0, tr1, center, r_sq)
+            self.draw_triangles_with_circle([tr0, tr1])
 
             if self.should_be_swapped(tr0, tr1):
                 self.swap_diagonals_in_triangles(tr0, tr1)
                 return [(tr1[1], tr1[2]), (tr1[2], tr1[0])]
         return []
+
+    def draw_triangles_with_circle(self, triangles):
+        tr0 = triangles[0]
+        tr = [self.points[tr0[i]] for i in range(3)]
+        center, r_sq = self.circumscribed_circle_of_triangle(tr)
+        self.visualiser.draw_with_triangles_and_circle(
+            triangles, center, r_sq)
 
     def should_be_swapped(self, tr0, tr1):
         if self.is_convex(tr0, tr1):
@@ -213,20 +196,55 @@ class Triangulation:
         self.triangle_set.remove_triangle(*tr1)
         self.triangle_set.add_triangle(tr0[2], tr0[0], tr1[2])
         self.triangle_set.add_triangle(tr1[2], tr1[0], tr0[2])
+
         self.visualiser.draw_with_triangles(
-            (tr0[2], tr0[0], tr1[2]), (tr1[2], tr1[0], tr0[2]))
+            [(tr0[2], tr0[0], tr1[2]), (tr1[2], tr1[0], tr0[2])])
+
+    def remove_overlaping_triangles(self, first_triangle):
+        edges_to_connect = []
+        stack = []
+        for i in range(3):
+            stack.append((first_triangle[i], first_triangle[(i+1) % 3]))
+        self.triangle_set.remove_triangle(*first_triangle)
+        while stack:
+            diagonal = stack.pop()
+            reversed_diagonal = (diagonal[1], diagonal[0])
+            if self.should_be_removed(reversed_diagonal):
+                stack.extend(self.get_neighbours(reversed_diagonal))
+                i2 = self.triangle_set[reversed_diagonal]
+                self.triangle_set.remove_triangle(*reversed_diagonal, i2)
+                self.visualiser.draw_with_looking_for_point()
+            else:
+                edges_to_connect.append(diagonal)
+        while edges_to_connect:
+            edge = edges_to_connect.pop()
+            self.triangle_set.add_triangle(*edge, self.idx)
+            self.visualiser.draw_with_looking_for_point()
+
+    def should_be_removed(self, diagonal):
+        if diagonal not in self.triangle_set:
+            return False
+        i2 = self.triangle_set[diagonal]
+        point = self.points[self.idx]
+        triangle = (*diagonal, i2)
+        self.draw_triangles_with_circle([triangle])
+        return self.is_point_in_circumscribed_circle_of_triangle(point=point, triangle=triangle)
+
+    def get_neighbours(self, diagonal):
+        result = []
+        if diagonal in self.triangle_set:
+            i0, i1 = diagonal
+            i2 = self.triangle_set[diagonal]
+            if (i2, i1) in self.triangle_set:
+                result.append((i2, i1))
+            if (i0, i2) in self.triangle_set:
+                result.append((i0, i2))
+        return result
 
     def get_result_triangulation(self):
         result = self.triangle_set.get_triangles()
         n = self.idx + 1
         return list(filter(lambda p: p[2] < n, result))
-
-    def get_test_lines(self):
-        ps = self.points
-        triangles = [[[ps[t[0]], ps[t[1]]], [ps[t[1]], ps[t[2]]], [
-            ps[t[2]], ps[t[0]]]] for t in self.triangle_set.get_triangles()]
-        ls = [item for sublist in triangles for item in sublist]
-        return ls
 
     def is_convex(self, tr0, tr1):
         p0 = self.points[tr0[0]]
@@ -251,16 +269,17 @@ class Triangulation:
 
 
 if __name__ == '__main__':
-    # ps = [
-    #     (0, 0), (1, 1), (2, 0), (4, 2),
-    #     (2, 4), (0, 4), (1.5, 6)
-    # ]
-    ps = generate_random_points(100, -1000, 1000)
-    tr = Triangulation(ps)
+    ps = [
+        (0, 0), (1, 1), (2, 0), (4, 2),
+        (2, 4), (0, 4), (1.5, 6)
+    ]
+    #ps = generate_random_points(100, -1000, 1000)
+    tr = Triangulation(ps, FakeVisualiser())
     try:
         triangles = tr.triangulate()
     except:
         print("kek")
+    print("Made")
     print(tr.is_proper())
     plot = tr.visualiser.get_plot()
     plot.draw()

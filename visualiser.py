@@ -73,16 +73,16 @@ class Visualiser:
         )
         return scene
 
-    def draw_with_triangles(self, tr0, tr1):
-        scene = self.draw_clear_triangulation()
-        triangle_lines = self.get_lines([tr0, tr1])
+    def draw_with_triangles(self, triangles):
+        scene = self.draw_with_looking_for_point()
+        triangle_lines = self.get_lines(triangles)
         scene.lines.append(
             LC(triangle_lines, color="cyan")
         )
         return scene
 
-    def draw_with_triangles_and_circle(self, tr0, tr1, center, r_sq):
-        scene = self.draw_with_triangles(tr0, tr1)
+    def draw_with_triangles_and_circle(self, triangles, center, r_sq):
+        scene = self.draw_with_triangles(triangles)
         circle_lines = self.get_circle_lines(center, r_sq)
         scene.lines.append(
             LC(circle_lines, color='orange')
@@ -113,3 +113,41 @@ class Visualiser:
         scene = self.draw_clear_triangulation()
         scene.points.pop()
         scene.lines.pop()
+
+
+class FakeVisualiser:
+    def __init__(self):
+        pass
+
+    def reset_path(self):
+        pass
+
+    def add_to_path(self, triangle):
+        pass
+
+    def draw_with_path(self):
+        pass
+
+    def set_triangulator(self, triangulator):
+        pass
+
+    def set_boundaries(self, left, right, bot, top):
+        pass
+
+    def draw_clear_triangulation(self):
+        pass
+
+    def draw_with_looking_for_point(self):
+        pass
+
+    def draw_with_triangles(self, triangles):
+        pass
+
+    def draw_with_triangles_and_circle(self, triangles, center, r_sq):
+        pass
+
+    def draw_result_triangulation(self):
+        pass
+
+    def get_plot(self):
+        return Plot()
