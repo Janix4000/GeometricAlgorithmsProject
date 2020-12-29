@@ -11,7 +11,7 @@ def gen_a(n=100, l=-100, r=100):
 
 def gen_b(n=100, p=np.array([0, 0]), r=10):
     angles = np.random.uniform(0, 2 * np.pi, n)
-    return gen_circle(angles)
+    return gen_circle(angles, p, r)
 
 
 def gen_circle(angles, p, r):
