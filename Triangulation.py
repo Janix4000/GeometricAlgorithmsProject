@@ -28,7 +28,6 @@ class Triangulation:
         p0, p1, p2 = self.make_starting_points()
         points.extend([p0, p1, p2])
         self.triangle_set.add_triangle(n, n + 1, n + 2)
-        self.visualiser.set_boundaries(p2[0], p1[0], p0[1], p1[1])
 
         self.visualiser.draw_clear_triangulation()
 
@@ -70,9 +69,11 @@ class Triangulation:
         top = reduce(lambda a, b: a if a[1] > b[1] else b, ps)[1]
         width = right - left
         height = top - bot
-        p0 = (left + width / 2, top + width / 2)
-        p1 = (right + 2 * height, bot - height * 0.5)
-        p2 = (left - 2 * height, bot - height * 0.5)
+        self.visualiser.set_boundaries(
+            left - 0.25 * width, right + 0.25 * width, bot - 0.25 * height, top + 0.25 * height)
+        p0 = (left + width / 2, top + 10 * width)
+        p1 = (right + 20 * height, bot - height * 5)
+        p2 = (left - 20 * height, bot - height * 5)
 
         return p0, p1, p2
 
@@ -116,15 +117,25 @@ class Triangulation:
         p0 = self.points[i0]
         p1 = self.points[i1]
         p2 = self.points[i2]
-        n201 = (p0[0] - p2[0] + p0[0] - p1[0], p0[1] - p2[1] + p0[1] - p1[1])
+        n01 = self.get_norm_line(p0, p1)
+        n12 = self.get_norm_line(p1, p2)
+        n20 = self.get_norm_line(p2, p0)
+        n201 = (n20[0] - n01[0], n20[1] - n01[1])
+        n012 = (n01[0] - n12[0], n01[1] - n12[1])
         # n201 = (n201[0] / sqrt(n201[0]**2 + n201[1]**2),
         # n201[1] / sqrt(n201[0]**2 + n201[1]**2))
-        n012 = (p1[0] - p2[0] + p1[0] - p0[0], p1[1] - p2[1] + p1[1] - p0[1])
+        #n012 = (p1[0] - p2[0] + p1[0] - p0[0], p1[1] - p2[1] + p1[1] - p0[1])
         # n012 = (n012[0] / sqrt(n012[0]**2 + n012[1]**2),
         # n012[1] / sqrt(n012[0]**2 + n012[1]**2))
         d201 = det(p0, (p0[0] + n201[0], p0[1] + n201[1]), point)
         d012 = det(p1, (p1[0] + n012[0], p1[1] + n012[1]), point)
         return d201 < 0 and d012 > 0
+
+    def get_norm_line(self, p0, p1):
+        n = (p1[0] - p0[0], p1[1] - p0[1])
+        l = sqrt(n[0]**2 + n[1]**2)
+        n = (n[0] / l, n[1] / l)
+        return n
 
     def add_point_to_triangulation(self, point):
         i0, i1, i2 = self.find_in_triangle(point)
@@ -244,16 +255,8 @@ if __name__ == '__main__':
     #     (0, 0), (1, 1), (2, 0), (4, 2),
     #     (2, 4), (0, 4), (1.5, 6)
     # ]
-    ps = generate_random_points(20, -1000, 1000)
+    ps = generate_random_points(100, -1000, 1000)
     tr = Triangulation(ps)
-    # scenes = []
-    # for i, lines in enumerate(tr.triangulate_test()):
-    #     print("Made triangulation for {} step".format(i))
-    #     scenes.append(Scene(
-    #         lines=[LC(
-    #             lines=lines
-    #         )]
-    #     ))
     try:
         triangles = tr.triangulate()
     except:

@@ -119,6 +119,10 @@ class _Button_callback(object):
     # od ustawionego parametru autoscaling, uniknąć sytuacji, kiedy dodawanie
     # nowych punktów przy brzegu obecnie widzianego zakresu powoduje niekorzystne
     # przeskalowanie.
+    def set_lims(self, xlim, ylim):
+        self.xlim = xlim
+        self.ylim = ylim
+
     def draw(self, autoscaling=True):
         if not autoscaling:
             xlim = self.ax.get_xlim()
@@ -134,6 +138,9 @@ class _Button_callback(object):
         if not autoscaling:
             self.ax.set_xlim(xlim)
             self.ax.set_ylim(ylim)
+        else:
+            self.ax.set_xlim(self.xlim)
+            self.ax.set_ylim(self.ylim)
         plt.draw()
 
 # Klasa Scene odpowiada za przechowywanie elementów, które mają być
@@ -187,6 +194,8 @@ class LinesCollection:
 
 class Plot:
     def __init__(self, scenes=[Scene()], points=[], lines=[], json=None):
+        self.xlim = None
+        self.ylim = None
         if json is None:
             self.scenes = scenes
             if points or lines:
@@ -262,14 +271,23 @@ class Plot:
         else:
             return None
 
+    def set_lims(self, xlim, ylim):
+        self.xlim = xlim
+        self.ylim = ylim
+
     # Główna metoda inicjalizująca wyświetlanie wykresu.
+
     def draw(self):
         plt.close()
         fig = plt.figure()
         self.callback = _Button_callback(self.scenes)
+        self.callback.set_lims(self.xlim, self.ylim)
         self.widgets = self.__configure_buttons()
         ax = plt.axes(autoscale_on=False)
         self.callback.set_axes(ax)
         fig.canvas.mpl_connect('button_press_event', self.callback.on_click)
+        if self.xlim is not None and self.ylim is not None:
+            plt.xlim(self.xlim)
+            plt.ylim(self.ylim)
         plt.show()
         self.callback.draw()

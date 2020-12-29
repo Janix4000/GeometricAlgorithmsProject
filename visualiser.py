@@ -27,7 +27,7 @@ class Visualiser:
         self.triangulator = triangulator
         self.n = len(triangulator.points)
 
-    def set_boundaries(self, left, right, top, bot):
+    def set_boundaries(self, left, right, bot, top):
         self.left = left
         self.right = right
         self.top = top
@@ -110,7 +110,9 @@ class Visualiser:
         return list(filter(lambda p: p[2] >= self.n, triangles))
 
     def get_plot(self):
-        return Plot(scenes=self.scenes)
+        plot = Plot(scenes=self.scenes)
+        plot.set_lims((self.left, self.right), (self.bot, self.top))
+        return plot
 
     def draw_result_triangulation(self):
         scene = self.draw_clear_triangulation()
