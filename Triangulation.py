@@ -8,14 +8,18 @@ from math import sqrt
 import numpy as np
 from plots import Plot, Scene, LinesCollection as LC
 
+OVERLAPING_METHOD = 1
+SWAPING_METHOD = 2
+
 
 class Triangulation:
-    def __init__(self, points: List[Tuple[float, float]], visualiser=FakeVisualiser()):
+    def __init__(self, points: List[Tuple[float, float]], method=SWAPING_METHOD, visualiser=FakeVisualiser()):
         self.points: List[Tuple[float, float]] = list(points)
         self.triangle_set = TriangleSet()
         self.idx = 0
         self.visualiser = visualiser
         self.visualiser.set_triangulator(self)
+        self.method = method
 
     def triangulate(self):
         points = self.points
@@ -80,12 +84,11 @@ class Triangulation:
         return d0 <= 0 and d1 <= 0 and d2 <= 0
 
     def find_next_in_triangle(self, point, i0, i1, i2):
-        if self.can_be_next_triangle(i0, i1, point):
-            return i1, i0, self.triangle_set[(i1, i0)]
-        if self.can_be_next_triangle(i1, i2, point):
-            return i2, i1, self.triangle_set[(i2, i1)]
-        if self.can_be_next_triangle(i2, i0, point):
-            return i0, i2, self.triangle_set[(i0, i2)]
+        tr = (i0, i1, i2)
+        for i in range(3):
+            if self.can_be_next_triangle(tr[i], tr[(i+1) % 3], point):
+                rev = (tr[(i+1) % 3], tr[i])
+                return (*rev, self.triangle_set[rev])
         return -1, -1, -1
 
     def can_be_next_triangle(self, i0, i1, point):
@@ -117,9 +120,10 @@ class Triangulation:
 
     def apply_point_in_triangle(self, point, triangle):
         t = triangle
-
-        # self.apply_swapping_method(t)
-        self.remove_overlaping_triangles(t)
+        if self.method == SWAPING_METHOD:
+            self.apply_swapping_method(t)
+        elif self.method == OVERLAPING_METHOD:
+            self.remove_overlaping_triangles(t)
 
     def apply_swapping_method(self, first_triangle):
         t = first_triangle
@@ -210,18 +214,18 @@ class Triangulation:
             diagonal = stack.pop()
             reversed_diagonal = (diagonal[1], diagonal[0])
             if self.should_be_removed(reversed_diagonal):
-                stack.extend(self.get_neighbours(reversed_diagonal))
-                edges_to_connect.extend(
-                    self.get_alone_edges(reversed_diagonal))
-                i2 = self.triangle_set[reversed_diagonal]
-                self.triangle_set.remove_triangle(*reversed_diagonal, i2)
-                self.visualiser.draw_with_looking_for_point()
+                self.remove_overlaping_triangle(
+                    reversed_diagonal, stack, edges_to_connect)
             else:
                 edges_to_connect.append(diagonal)
-        while edges_to_connect:
-            edge = edges_to_connect.pop()
-            self.triangle_set.add_triangle(*edge, self.idx)
-            self.visualiser.draw_with_looking_for_point()
+        self.connect_edges(edges_to_connect)
+
+    def remove_overlaping_triangle(self, diagonal, stack, edges_to_connect):
+        stack.extend(self.get_neighbours(diagonal))
+        edges_to_connect.extend(self.get_alone_edges(diagonal))
+        i2 = self.triangle_set[diagonal]
+        self.triangle_set.remove_triangle(*diagonal, i2)
+        self.visualiser.draw_with_looking_for_point()
 
     def should_be_removed(self, diagonal):
         if diagonal not in self.triangle_set:
@@ -253,6 +257,12 @@ class Triangulation:
             if (i0, i2) not in self.triangle_set:
                 result.append((i2, i0))
         return result
+
+    def connect_edges(self, edges_to_connect):
+        while edges_to_connect:
+            edge = edges_to_connect.pop()
+            self.triangle_set.add_triangle(*edge, self.idx)
+            self.visualiser.draw_with_looking_for_point()
 
     def get_result_triangulation(self):
         result = self.triangle_set.get_triangles()
@@ -291,10 +301,10 @@ if __name__ == '__main__':
         (0, 1), (1, 1),
         (0, 0), (1, 0)
     ]
-    tr = Triangulation(ps, Visualiser())
+    tr = Triangulation(ps, visualiser=Visualiser(), method=OVERLAPING_METHOD)
+    triangles = tr.triangulate()
     try:
-        # pass
-        triangles = tr.triangulate()
+        pass
     except:
         print("kek")
     print("Made")
