@@ -10,6 +10,7 @@ from plots import Plot, Scene, LinesCollection as LC
 
 OVERLAPING_METHOD = 1
 SWAPING_METHOD = 2
+delta = 1e-5
 
 
 class Triangulation:
@@ -114,8 +115,8 @@ class Triangulation:
         return n
 
     def add_point_to_triangulation(self, point):
-        i0, i1, i2 = self.find_in_triangle(point)
-        self.apply_point_in_triangle(point, (i0, i1, i2))
+        first_triangle = self.find_in_triangle(point)
+        self.apply_point_in_triangle(point, first_triangle)
         self.idx += 1
 
     def apply_point_in_triangle(self, point, triangle):
@@ -126,12 +127,40 @@ class Triangulation:
             self.remove_overlaping_triangles(t)
 
     def apply_swapping_method(self, first_triangle):
+        overlapping_edge = self.get_overlapping_edge(first_triangle)
+        if overlapping_edge is not None:
+            i0, i1 = overlapping_edge
+            i2 = self.triangle_set[(i0, i1)]
+            self.triangle_set.remove_triangle(i0, i1, i2)
+            self.triangle_set.add_triangle(i0, self.idx, i2)
+            self.triangle_set.add_triangle(i2, self.idx, i1)
+            if (i1, i0) in self.triangle_set:
+                i3 = self.triangle_set[(i1, i0)]
+                self.triangle_set.remove_triangle(i0, i3, i1)
+                self.triangle_set.add_triangle(i0, i3, self.idx)
+                self.triangle_set.add_triangle(i3, i1, self.idx)
+        else:
+            self.merge_into_triangle(first_triangle)
+        self.visualiser.draw_with_looking_for_point()
+        self.swap_bad_neighbours(first_triangle)
+
+    def get_overlapping_edge(self, first_triangle):
+        point = self.points[self.idx]
         t = first_triangle
+        ps = self.points
+        for i in range(3):
+            i0, i1 = t[i], t[(i+1) % 3]
+            p0, p1 = ps[i0], ps[i1]
+            if abs(det(p0, p1, point)) < delta:
+                return i0, i1
+        return None
+
+    def merge_into_triangle(self, triangle):
+        t = triangle
         self.triangle_set.remove_triangle(*t)
         for i in range(3):
-            self.triangle_set.add_triangle(t[i], t[(i + 1) % 3], self.idx)
-        self.visualiser.draw_with_looking_for_point()
-        self.swap_bad_neighbours(t)
+            i0, i1 = t[i], t[(i+1) % 3]
+            self.triangle_set.add_triangle(i0, i1, self.idx)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -298,10 +327,10 @@ if __name__ == '__main__':
     # ]
     # ps = generate_random_points(100, -1000, 1000)
     ps = [
-        (0, 1), (1, 1),
-        (0, 0), (1, 0)
+        (0, 0), (2, 2), (1, 1),
+        (2, 0)
     ]
-    tr = Triangulation(ps, visualiser=Visualiser(), method=OVERLAPING_METHOD)
+    tr = Triangulation(ps, visualiser=Visualiser(), method=SWAPING_METHOD)
     triangles = tr.triangulate()
     try:
         pass
