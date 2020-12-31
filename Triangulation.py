@@ -129,16 +129,7 @@ class Triangulation:
     def apply_swapping_method(self, first_triangle):
         overlapping_edge = self.get_overlapping_edge(first_triangle)
         if overlapping_edge is not None:
-            i0, i1 = overlapping_edge
-            i2 = self.triangle_set[(i0, i1)]
-            self.triangle_set.remove_triangle(i0, i1, i2)
-            self.triangle_set.add_triangle(i0, self.idx, i2)
-            self.triangle_set.add_triangle(i2, self.idx, i1)
-            if (i1, i0) in self.triangle_set:
-                i3 = self.triangle_set[(i1, i0)]
-                self.triangle_set.remove_triangle(i0, i3, i1)
-                self.triangle_set.add_triangle(i0, i3, self.idx)
-                self.triangle_set.add_triangle(i3, i1, self.idx)
+            self.split_to_two_triangles(overlapping_edge)
         else:
             self.merge_into_triangle(first_triangle)
         self.visualiser.draw_with_looking_for_point()
@@ -161,6 +152,18 @@ class Triangulation:
         for i in range(3):
             i0, i1 = t[i], t[(i+1) % 3]
             self.triangle_set.add_triangle(i0, i1, self.idx)
+
+    def split_to_two_triangles(self, edge):
+        i0, i1 = edge
+        i2 = self.triangle_set[(i0, i1)]
+        self.triangle_set.remove_triangle(i0, i1, i2)
+        self.triangle_set.add_triangle(i0, self.idx, i2)
+        self.triangle_set.add_triangle(i2, self.idx, i1)
+        if (i1, i0) in self.triangle_set:
+            i3 = self.triangle_set[(i1, i0)]
+            self.triangle_set.remove_triangle(i0, i3, i1)
+            self.triangle_set.add_triangle(i0, i3, self.idx)
+            self.triangle_set.add_triangle(i3, i1, self.idx)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -327,10 +330,10 @@ if __name__ == '__main__':
     # ]
     # ps = generate_random_points(100, -1000, 1000)
     ps = [
-        (0, 0), (2, 2), (1, 1),
+        (0, 0), (2, 2), (1, 1), (4, 4), (3, 3),
         (2, 0)
     ]
-    tr = Triangulation(ps, visualiser=Visualiser(), method=SWAPING_METHOD)
+    tr = Triangulation(ps, visualiser=Visualiser(), method=OVERLAPING_METHOD)
     triangles = tr.triangulate()
     try:
         pass
