@@ -89,7 +89,7 @@ class Triangulation:
         return -1, -1, -1
 
     def can_be_next_triangle(self, i0, i1, point):
-        if not (i0, i1) in self.triangle_set:
+        if not (i1, i0) in self.triangle_set:
             return False
         i2 = self.triangle_set[(i0, i1)]
         p0 = self.points[i0]
@@ -117,12 +117,17 @@ class Triangulation:
 
     def apply_point_in_triangle(self, point, triangle):
         t = triangle
+
+        # self.apply_swapping_method(t)
+        self.remove_overlaping_triangles(t)
+
+    def apply_swapping_method(self, first_triangle):
+        t = first_triangle
         self.triangle_set.remove_triangle(*t)
         for i in range(3):
             self.triangle_set.add_triangle(t[i], t[(i + 1) % 3], self.idx)
         self.visualiser.draw_with_looking_for_point()
-        # self.swap_bad_neighbours(t)
-        self.remove_overlaping_triangles(t)
+        self.swap_bad_neighbours(t)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -206,6 +211,8 @@ class Triangulation:
             reversed_diagonal = (diagonal[1], diagonal[0])
             if self.should_be_removed(reversed_diagonal):
                 stack.extend(self.get_neighbours(reversed_diagonal))
+                edges_to_connect.extend(
+                    self.get_alone_edges(reversed_diagonal))
                 i2 = self.triangle_set[reversed_diagonal]
                 self.triangle_set.remove_triangle(*reversed_diagonal, i2)
                 self.visualiser.draw_with_looking_for_point()
@@ -231,9 +238,20 @@ class Triangulation:
             i0, i1 = diagonal
             i2 = self.triangle_set[diagonal]
             if (i2, i1) in self.triangle_set:
-                result.append((i2, i1))
+                result.append((i1, i2))
             if (i0, i2) in self.triangle_set:
-                result.append((i0, i2))
+                result.append((i2, i0))
+        return result
+
+    def get_alone_edges(self, diagonal):
+        result = []
+        if diagonal in self.triangle_set:
+            i0, i1 = diagonal
+            i2 = self.triangle_set[diagonal]
+            if (i2, i1) not in self.triangle_set:
+                result.append((i1, i2))
+            if (i0, i2) not in self.triangle_set:
+                result.append((i2, i0))
         return result
 
     def get_result_triangulation(self):
@@ -264,15 +282,19 @@ class Triangulation:
 
 
 if __name__ == '__main__':
+    # ps = [
+    #     (0, 0), (1, 1), (2, 0), (4, 2),
+    #     (2, 4), (0, 4), (1.5, 6)
+    # ]
+    # ps = generate_random_points(100, -1000, 1000)
     ps = [
-        (0, 0), (1, 1), (2, 0), (4, 2),
-        (2, 4), (0, 4), (1.5, 6)
+        (0, 1), (1, 1),
+        (0, 0), (1, 0)
     ]
-    #ps = generate_random_points(100, -1000, 1000)
-    tr = Triangulation(ps, FakeVisualiser())
-    triangles = tr.triangulate()
+    tr = Triangulation(ps, Visualiser())
     try:
-        pass
+        # pass
+        triangles = tr.triangulate()
     except:
         print("kek")
     print("Made")
