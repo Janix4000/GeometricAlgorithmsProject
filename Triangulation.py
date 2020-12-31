@@ -100,11 +100,6 @@ class Triangulation:
         n20 = self.get_norm_line(p2, p0)
         n201 = (n20[0] - n01[0], n20[1] - n01[1])
         n012 = (n01[0] - n12[0], n01[1] - n12[1])
-        # n201 = (n201[0] / sqrt(n201[0]**2 + n201[1]**2),
-        # n201[1] / sqrt(n201[0]**2 + n201[1]**2))
-        #n012 = (p1[0] - p2[0] + p1[0] - p0[0], p1[1] - p2[1] + p1[1] - p0[1])
-        # n012 = (n012[0] / sqrt(n012[0]**2 + n012[1]**2),
-        # n012[1] / sqrt(n012[0]**2 + n012[1]**2))
         d201 = det(p0, (p0[0] + n201[0], p0[1] + n201[1]), point)
         d012 = det(p1, (p1[0] + n012[0], p1[1] + n012[1]), point)
         return d201 < 0 and d012 > 0
@@ -126,8 +121,8 @@ class Triangulation:
         for i in range(3):
             self.triangle_set.add_triangle(t[i], t[(i + 1) % 3], self.idx)
         self.visualiser.draw_with_looking_for_point()
-        self.swap_bad_neighbours(t)
-        # self.remove_overlaping_triangles(t)
+        # self.swap_bad_neighbours(t)
+        self.remove_overlaping_triangles(t)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -275,8 +270,9 @@ if __name__ == '__main__':
     ]
     #ps = generate_random_points(100, -1000, 1000)
     tr = Triangulation(ps, FakeVisualiser())
+    triangles = tr.triangulate()
     try:
-        triangles = tr.triangulate()
+        pass
     except:
         print("kek")
     print("Made")
