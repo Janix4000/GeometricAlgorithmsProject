@@ -1,3 +1,4 @@
+from random import shuffle
 from TriangleSet import TriangleSet
 from tools import own_det_3 as det
 from generators import gen_a as generate_random_points
@@ -32,7 +33,7 @@ class Triangulation:
 
         p0, p1, p2 = self.make_starting_points()
         points.extend([p0, p1, p2])
-        self.triangle_set.add_triangle(n, n + 1, n + 2)
+        self.add_triangle(n, n + 1, n + 2)
 
         self.visualiser.draw_clear_triangulation()
 
@@ -87,8 +88,9 @@ class Triangulation:
     def find_next_in_triangle(self, point, i0, i1, i2):
         tr = (i0, i1, i2)
         for i in range(3):
-            if self.can_be_next_triangle(tr[i], tr[(i+1) % 3], point):
-                rev = (tr[(i+1) % 3], tr[i])
+            i0, i1 = tr[i], tr[(i+1) % 3]
+            if self.can_be_next_triangle(i0, i1, point):
+                rev = (i1, i0)
                 return (*rev, self.triangle_set[rev])
         return -1, -1, -1
 
@@ -106,7 +108,7 @@ class Triangulation:
         n012 = (n01[0] - n12[0], n01[1] - n12[1])
         d201 = det(p0, (p0[0] + n201[0], p0[1] + n201[1]), point)
         d012 = det(p1, (p1[0] + n012[0], p1[1] + n012[1]), point)
-        return d201 < 0 and d012 > 0
+        return d201 < delta and d012 > -delta
 
     def get_norm_line(self, p0, p1):
         n = (p1[0] - p0[0], p1[1] - p0[1])
@@ -146,24 +148,33 @@ class Triangulation:
                 return i0, i1
         return None
 
+    def add_triangle(self, i0, i1, i2):
+        self.triangle_set.add_triangle(i0, i1, i2)
+        if self.is_not_proper_triangle(i0, i1, i2):
+            print('Ups...')
+
+    def is_not_proper_triangle(self, i0, i1, i2):
+        p0, p1, p2 = self.points[i0], self.points[i1], self.points[i2]
+        return abs(det(p0, p1, p2)) < delta
+
     def merge_into_triangle(self, triangle):
         t = triangle
         self.triangle_set.remove_triangle(*t)
         for i in range(3):
             i0, i1 = t[i], t[(i+1) % 3]
-            self.triangle_set.add_triangle(i0, i1, self.idx)
+            self.add_triangle(i0, i1, self.idx)
 
     def split_to_two_triangles(self, edge):
         i0, i1 = edge
         i2 = self.triangle_set[(i0, i1)]
         self.triangle_set.remove_triangle(i0, i1, i2)
-        self.triangle_set.add_triangle(i0, self.idx, i2)
-        self.triangle_set.add_triangle(i2, self.idx, i1)
+        self.add_triangle(i0, self.idx, i2)
+        self.add_triangle(i2, self.idx, i1)
         if (i1, i0) in self.triangle_set:
             i3 = self.triangle_set[(i1, i0)]
             self.triangle_set.remove_triangle(i0, i3, i1)
-            self.triangle_set.add_triangle(i0, i3, self.idx)
-            self.triangle_set.add_triangle(i3, i1, self.idx)
+            self.add_triangle(i0, i3, self.idx)
+            self.add_triangle(i3, i1, self.idx)
 
     def swap_bad_neighbours(self, first_triangle):
         t = first_triangle
@@ -230,8 +241,8 @@ class Triangulation:
     def swap_diagonals_in_triangles(self, tr0, tr1):
         self.triangle_set.remove_triangle(*tr0)
         self.triangle_set.remove_triangle(*tr1)
-        self.triangle_set.add_triangle(tr0[2], tr0[0], tr1[2])
-        self.triangle_set.add_triangle(tr1[2], tr1[0], tr0[2])
+        self.add_triangle(tr0[2], tr0[0], tr1[2])
+        self.add_triangle(tr1[2], tr1[0], tr0[2])
 
         self.visualiser.draw_with_triangles(
             [(tr0[2], tr0[0], tr1[2]), (tr1[2], tr1[0], tr0[2])])
@@ -293,7 +304,7 @@ class Triangulation:
     def connect_edges(self, edges_to_connect):
         while edges_to_connect:
             edge = edges_to_connect.pop()
-            self.triangle_set.add_triangle(*edge, self.idx)
+            self.add_triangle(*edge, self.idx)
             self.visualiser.draw_with_looking_for_point()
 
     def get_result_triangulation(self):
@@ -329,16 +340,21 @@ if __name__ == '__main__':
     #     (2, 4), (0, 4), (1.5, 6)
     # ]
     # ps = generate_random_points(100, -1000, 1000)
-    ps = [
-        (0, 0), (2, 2), (1, 1), (4, 4), (3, 3),
-        (2, 0)
-    ]
+
+    ps = []
+    for y in range(4):
+        for x in range(5):
+            ps.append((x, y))
+    shuffle(ps)
+    # ps = [
+    #     (0, 0), (2, 2), (1, 1), (4, 4), (3, 3),
+    #     (2, 0)
     tr = Triangulation(ps, visualiser=Visualiser(), method=OVERLAPING_METHOD)
-    triangles = tr.triangulate()
     try:
-        pass
-    except:
-        print("kek")
+        triangles = tr.triangulate()
+        # pass
+    except Exception as exc:
+        print(exc)
     print("Made")
     print(tr.is_proper())
     plot = tr.visualiser.get_plot()

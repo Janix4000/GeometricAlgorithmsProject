@@ -6,6 +6,8 @@ class TriangleSet:
         t = (i0, i1, i2)
         for i in range(3):
             self.ts[(t[i], t[(i + 1) % 3])] = t[(i + 2) % 3]
+        if len(self.ts) % 3 != 0:
+            raise Exception("Hola, there should be 3k entries!")
 
     def remove_triangle(self, i0, i1, i2):
         t = (i0, i1, i2)
