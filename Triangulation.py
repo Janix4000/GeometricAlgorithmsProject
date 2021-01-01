@@ -129,13 +129,22 @@ class Triangulation:
             self.remove_overlaping_triangles(t)
 
     def apply_swapping_method(self, first_triangle):
+        first_triangles = [first_triangle]
         overlapping_edge = self.get_overlapping_edge(first_triangle)
         if overlapping_edge is not None:
             self.split_to_two_triangles(overlapping_edge)
+            i0, i1 = overlapping_edge
+            i2 = self.triangle_set[(i0, self.idx)]
+            first_neigbours = [(i2, i0), (i1, i2)]
+            if (self.idx, i0) in self.triangle_set:
+                i3 = self.triangle_set[(self.idx, i0)]
+                first_neigbours.extend([(i0, i3), (i3, i1)])
         else:
             self.merge_into_triangle(first_triangle)
+            t = first_triangle
+            first_neigbours = [(t[i], t[(i + 1) % 3]) for i in range(3)]
         self.visualiser.draw_with_looking_for_point()
-        self.swap_bad_neighbours(first_triangle)
+        self.swap_bad_neighbours(first_neigbours)
 
     def get_overlapping_edge(self, first_triangle):
         point = self.points[self.idx]
@@ -176,9 +185,8 @@ class Triangulation:
             self.add_triangle(i0, i3, self.idx)
             self.add_triangle(i3, i1, self.idx)
 
-    def swap_bad_neighbours(self, first_triangle):
-        t = first_triangle
-        stack = [(t[i], t[(i + 1) % 3]) for i in range(3)]
+    def swap_bad_neighbours(self, first_neigbours):
+        stack = first_neigbours
         swapped = set()
         while stack:
             diagonal = stack.pop()
@@ -211,15 +219,21 @@ class Triangulation:
 
     def should_be_swapped(self, tr0, tr1):
         if self.is_convex(tr0, tr1):
-            point = self.points[tr1[2]]
+            i_point = tr1[2]
             triangle = tr0
-            return self.is_point_in_circumscribed_circle_of_triangle(point, triangle)
+            return self.is_point_in_circumscribed_circle_of_triangle(i_point, triangle)
         return False
 
-    def is_point_in_circumscribed_circle_of_triangle(self, point, triangle):
+    def is_point_in_circumscribed_circle_of_triangle(self, i_point, triangle):
+        if self.is_magical_point(i_point):
+            return False
+        point = self.points[i_point]
         tr = [self.points[triangle[i]] for i in range(3)]
         center, r_sq = self.circumscribed_circle_of_triangle(tr)
         return (point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2 < r_sq
+
+    def is_magical_point(self, i_point):
+        return i_point >= len(self.points) - 2
 
     @ staticmethod
     def circumscribed_circle_of_triangle(triangle):
@@ -274,10 +288,9 @@ class Triangulation:
         if diagonal not in self.triangle_set:
             return False
         i2 = self.triangle_set[diagonal]
-        point = self.points[self.idx]
         triangle = (*diagonal, i2)
         self.draw_triangles_with_circle([triangle])
-        return self.is_point_in_circumscribed_circle_of_triangle(point=point, triangle=triangle)
+        return self.is_point_in_circumscribed_circle_of_triangle(i_point=self.idx, triangle=triangle)
 
     def get_neighbours(self, diagonal):
         result = []
@@ -328,8 +341,7 @@ class Triangulation:
             for i in range(self.idx):
                 if i in [i0, i1, i2]:
                     continue
-                point = self.points[i]
-                if self.is_point_in_circumscribed_circle_of_triangle(point, triangle):
+                if self.is_point_in_circumscribed_circle_of_triangle(i, triangle):
                     return False
         return True
 
@@ -342,20 +354,22 @@ if __name__ == '__main__':
     # ps = generate_random_points(100, -1000, 1000)
 
     ps = []
-    for y in range(4):
-        for x in range(5):
+    for y in range(10):
+        for x in range(10):
             ps.append((x, y))
     shuffle(ps)
     # ps = [
     #     (0, 0), (2, 2), (1, 1), (4, 4), (3, 3),
     #     (2, 0)
-    tr = Triangulation(ps, visualiser=Visualiser(), method=OVERLAPING_METHOD)
+    shuffle(ps)
+    tr = Triangulation(ps, visualiser=Visualiser(),
+                       method=SWAPING_METHOD)
     try:
         triangles = tr.triangulate()
-        # pass
     except Exception as exc:
         print(exc)
     print("Made")
-    print(tr.is_proper())
+    is_proper = tr.is_proper()
+    print(is_proper)
     plot = tr.visualiser.get_plot()
     plot.draw()
