@@ -56,8 +56,8 @@ class Triangulation:
         self.visualiser.set_boundaries(
             left - 0.25 * width, right + 0.25 * width, bot - 0.25 * height, top + 0.25 * height)
         p0 = (left + width / 2, top + 10 * width)
-        p1 = (right + 20 * height, bot - height * 5)
-        p2 = (left - 20 * height, bot - height * 5)
+        p1 = (right + 40 * height, bot - height * 5)
+        p2 = (left - 40 * height, bot - height * 5)
 
         return p0, p1, p2
 
@@ -354,16 +354,17 @@ if __name__ == '__main__':
     # ps = generate_random_points(100, -1000, 1000)
 
     ps = []
-    for y in range(10):
-        for x in range(10):
-            ps.append((x, y))
-    shuffle(ps)
+    n = 4
+    for y in range(n):
+        for x in range(n):
+            ps.append((x / n, y / n))
     # ps = [
     #     (0, 0), (2, 2), (1, 1), (4, 4), (3, 3),
     #     (2, 0)
-    shuffle(ps)
+    print('Started')
+
     tr = Triangulation(ps, visualiser=Visualiser(),
-                       method=SWAPING_METHOD)
+                       method=OVERLAPING_METHOD)
     try:
         triangles = tr.triangulate()
     except Exception as exc:
